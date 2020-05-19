@@ -1,0 +1,20 @@
+<resources>
+    <string name="app_name">Single Sign On 1</string>
+
+    <!-- Splash Screen -->
+    <string name="splash_screen_title">Yellow\nPokédex</string>
+
+    <!-- Login -->
+    <string name="login_title">Single Sign On 1</string>
+    <string name="username_field">email</string>
+    <string name="password">password</string>
+    <string name="login_button">Sign in with SSO Account</string>
+    <string name="preference_file_key">com.rafaelperez.singlesignon1.shared_preference</string>
+    <string name="logged_status_key">logged</string>
+    
+    <!-- Logged -->
+    <string name="greeting">You are logged in</string>
+
+    <!-- Logout -->
+    <string name="logout_menu_option">Logout</string>
+</resources>
