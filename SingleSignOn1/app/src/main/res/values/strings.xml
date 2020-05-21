@@ -11,9 +11,15 @@
     <string name="login_button">Sign in with SSO Account</string>
     <string name="preference_file_key">com.rafaelperez.singlesignon1.shared_preference</string>
     <string name="logged_status_key">logged</string>
-    
+
+    <!-- Authenticator -->
+    <string name="sign_in">Sign in</string>
+    <string name="sign_up">Sign up</string>
+    <string name="label">sso account</string>
+    <string name="account_type">com.ksquare.sso</string>
+
     <!-- Logged -->
-    <string name="greeting">You are logged in</string>
+    <string name="greeting">You are logged in!</string>
 
     <!-- Logout -->
     <string name="logout_menu_option">Logout</string>

@@ -1,27 +1,36 @@
 package com.rafaelperez.singlesignon1.viewmodel;
 
+import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 public class LoginViewModel extends ViewModel {
 
-    private MutableLiveData<Boolean> _signingIn = new MutableLiveData<>();
+    private MutableLiveData<Boolean> signingIn = new MutableLiveData<>();
+    public LiveData<Boolean> getSigningIn() {
+        return signingIn;
+    }
+
+    private MutableLiveData<Boolean> accessDenied = new MutableLiveData<>();
+    public LiveData<Boolean> getAccessDenied() {
+        return accessDenied;
+    }
 
     public LoginViewModel() {
         super();
-        _signingIn.setValue(false);
+        signingIn.setValue(false);
+        accessDenied.setValue(false);
     }
 
     public void signIn() {
-        _signingIn.setValue(true);
+        signingIn.setValue(true);
     }
 
-    public void authenticate() {
+    public void authenticate(String token) {
         //todo: try to autenticate with the service provider
 
-    }
+        //if token is invalid, ask the user for credentials
+        accessDenied.setValue(true);
 
-    public MutableLiveData<Boolean> get_signingIn() {
-        return _signingIn;
     }
 }
