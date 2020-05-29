@@ -14,5 +14,9 @@
     <fragment
         android:id="@+id/loggedFragment"
         android:name="com.rafaelperez.singlesignon1.view.LoggedFragment"
-        android:label="LoggedFragment" />
+        android:label="LoggedFragment" >
+        <argument
+            android:name="authToken"
+            app:argType="string" />
+    </fragment>
 </navigation>

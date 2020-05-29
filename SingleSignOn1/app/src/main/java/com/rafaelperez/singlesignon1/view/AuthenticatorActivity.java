@@ -1,21 +1,25 @@
 package com.rafaelperez.singlesignon1.view;
 
-import android.accounts.Account;
-import android.accounts.AccountAuthenticatorActivity;
-import android.accounts.AccountManager;
-import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
-import android.view.View;
-import android.widget.Button;
-import android.widget.EditText;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.Toast;
 
-import com.rafaelperez.singlesignon1.R;
-import com.rafaelperez.singlesignon1.authentication.AccountGeneral;
+import androidx.appcompat.app.AppCompatActivity;
 
-public class AuthenticatorActivity extends AccountAuthenticatorActivity implements View.OnClickListener {
+import com.rafaelperez.singlesignon1.network.OAuth2TokenHelper;
+
+import org.dmfs.oauth2.client.OAuth2AccessToken;
+import org.dmfs.oauth2.client.OAuth2InteractiveGrant;
+
+import java.net.URI;
+
+public class AuthenticatorActivity extends AppCompatActivity {
 
     public final static String ARG_ACCOUNT_TYPE = "ACCOUNT_TYPE";
     public final static String ARG_AUTH_TYPE = "AUTH_TYPE";
@@ -23,118 +27,95 @@ public class AuthenticatorActivity extends AccountAuthenticatorActivity implemen
     public final static String ARG_IS_ADDING_NEW_ACCOUNT = "IS_ADDING_ACCOUNT";
     public final static String KEY_ERROR_MESSAGE = "ERR_MSG";
     public final static String PARAM_USER_PASS = "USER_PASS";
+    public final static String AUTH_TOKEN = "authToken";
+    public final static String REFRESH_TOKEN = "refreshToken";
     private final int REQ_SIGNUP = 1;
     private final String TAG = this.getClass().getSimpleName();
 
-    private AccountManager accountManager;
-    private String authTokenType;
-
-    private EditText etEmail;
-    private EditText etPassword;
+    private WebView webView;
+    private int loginFormSubmited = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_authenticator);
-        etEmail = findViewById(R.id.etEmail);
-        etPassword = findViewById(R.id.etPassword);
-        Button btnSignIn = findViewById(R.id.btnSignIn);
-        Button btnSignUp = findViewById(R.id.btnSignUp);
-        btnSignIn.setOnClickListener(this);
-        btnSignUp.setOnClickListener(this);
-        accountManager = AccountManager.get(getBaseContext());
-
-        String accountName = getIntent().getStringExtra(ARG_ACCOUNT_NAME);
-        authTokenType = getIntent().getStringExtra(ARG_AUTH_TYPE);
-        if (authTokenType == null) {
-            authTokenType = AccountGeneral.AUTHTOKEN_TYPE_FULL_ACCESS;
-        }
-        if (accountName != null) {
-            etEmail.setText(accountName);
-        }
-
-    }
-
-    @Override
-    public void onClick(View view) {
-        switch (view.getId()) {
-            case R.id.btnSignIn:
-                signIn();
-                break;
-            case R.id.btnSignUp:
-                //todo: add signup functionality
-                break;
-        }
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        // The sign up activity returned that the user has successfully created an account
-        if (requestCode == REQ_SIGNUP && resultCode == RESULT_OK) {
-            finishLogin(data);
-        } else {
-            super.onActivityResult(requestCode, resultCode, data);
-        }
+        webView = new WebView(this);
+        setContentView(webView);
+        webView.getSettings().setJavaScriptEnabled(true);
+        signIn();
     }
 
     private void signIn() {
-        final String userName = etEmail.getText().toString();
-        final String userPass = etPassword.getText().toString();
-        final String accountType = getIntent().getStringExtra(ARG_ACCOUNT_TYPE);
-        MyAsynTask asyncTask = new MyAsynTask(this, userName, accountType, userPass);
-        asyncTask.execute();
+        OAuth2TokenHelper tokenHelper = new OAuth2TokenHelper();
+        OAuth2InteractiveGrant grant = tokenHelper.getInteractiveGrant();
+        URI authUrl = tokenHelper.getAuthUrl(grant);
+        webView.getSettings().setAppCacheEnabled(false);
+        webView.clearCache(true);
+        webView.setWebViewClient(new MyWebViewClient(tokenHelper, grant));
+        webView.loadUrl(authUrl.toString());
+        //webView.loadUrl("http://www.google.com");
     }
 
-    private void finishLogin(Intent intent) {
-        String accountName = intent.getStringExtra(AccountManager.KEY_ACCOUNT_NAME);
-        String accountPassword = intent.getStringExtra(PARAM_USER_PASS);
-        final Account account = new Account(accountName, intent.getStringExtra(AccountManager.KEY_ACCOUNT_TYPE));
+    private class MyWebViewClient extends WebViewClient{
 
-        if (getIntent().getBooleanExtra(ARG_IS_ADDING_NEW_ACCOUNT, false)) {
-            String authToken = intent.getStringExtra(AccountManager.KEY_AUTHTOKEN);
-            String authTokenType = this.authTokenType;
+        private  OAuth2TokenHelper tokenHelper;
+        private OAuth2InteractiveGrant grant;
 
-            // Creating the account on the device and setting the auth token we got
-            // (Not setting the auth token will cause another call to the server to authenticate the user)
-            accountManager.addAccountExplicitly(account, accountPassword, null);
-            accountManager.setAuthToken(account, authTokenType, authToken);
-        } else {
-            accountManager.setPassword(account, accountPassword);
-        }
-
-        setAccountAuthenticatorResult(intent.getExtras());
-        setResult(RESULT_OK, intent);
-        finish();
-    }
-
-    private class MyAsynTask extends AsyncTask<String, Void, Intent> {
-        private Context context;
-        private String userName;
-        private String accountType;
-        private String userPass;
-
-        MyAsynTask(Context context, String userName, String accountType, String userPass) {
-            this.context = context;
-            this.userName = userName;
-            this.accountType = accountType;
-            this.userPass = userPass;
+        MyWebViewClient(OAuth2TokenHelper tokenHelper, OAuth2InteractiveGrant grant) {
+            this.tokenHelper = tokenHelper;
+            this.grant = grant;
         }
 
         @Override
-        protected Intent doInBackground(String... params) {
-            String authToken = null;
+        public void onPageStarted(WebView view, String url, Bitmap favicon) {
+            super.onPageStarted(view, url, favicon);
+        }
+
+        @Override
+        public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+            /*if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                if (request.getUrl().toString().contains("login")) {
+                    return false;
+                }
+            }
+            return true;*/
+            return false;
+        }
+//http://10.0.2.2:8080/login
+        @Override
+        public void onPageFinished(WebView view, String url) {
+            super.onPageFinished(view, url);
+            loginFormSubmited++;
+            if (loginFormSubmited >1 && !url.contains("error")) {
+                TokenAsynTask tokenAsynTask = new TokenAsynTask(tokenHelper, grant, url);
+                tokenAsynTask.execute();
+            }
+        }
+    }
+
+    private class TokenAsynTask extends AsyncTask<String, Void, Intent> {
+
+        private OAuth2TokenHelper tokenHelper;
+        private OAuth2InteractiveGrant grant;
+        private String url;
+
+        public TokenAsynTask(OAuth2TokenHelper tokenHelper, OAuth2InteractiveGrant grant, String url) {
+            this.tokenHelper = tokenHelper;
+            this.grant = grant;
+            this.url = url;
+        }
+
+        @Override
+        protected Intent doInBackground(String... strings) {
             Bundle data = new Bundle();
             try {
-                //todo: sign in with retrofit
-                //authToken = AccountGeneral.sServerAuthenticate.userSignIn(userName, userPass, mAuthTokenType);
-                data.putString(AccountManager.KEY_ACCOUNT_NAME, userName);
-                data.putString(AccountManager.KEY_ACCOUNT_TYPE, accountType);
-                data.putString(AccountManager.KEY_AUTHTOKEN, authToken);
-                data.putString(PARAM_USER_PASS, userPass);
+                OAuth2AccessToken oAuth2AccessToken = grant.withRedirect(tokenHelper.getUri(url)).accessToken(tokenHelper.getExecutor());
+                String authToken = oAuth2AccessToken.accessToken().toString();
+                String refreshToken = oAuth2AccessToken.refreshToken().toString();
+                data.putString(AUTH_TOKEN, authToken);
+                data.putString(REFRESH_TOKEN, refreshToken);
             } catch (Exception e) {
                 data.putString(KEY_ERROR_MESSAGE, e.getMessage());
             }
-
             final Intent intent = new Intent();
             intent.putExtras(data);
             return intent;
@@ -143,10 +124,32 @@ public class AuthenticatorActivity extends AccountAuthenticatorActivity implemen
         @Override
         protected void onPostExecute(Intent intent) {
             if (intent.hasExtra(KEY_ERROR_MESSAGE)) {
-                Toast.makeText(context, intent.getStringExtra(KEY_ERROR_MESSAGE), Toast.LENGTH_SHORT).show();
+                showErrorMessage(intent);
             } else {
                 finishLogin(intent);
             }
         }
+    }
+
+    private void finishLogin(Intent intent) {
+        if (intent.getStringExtra(AUTH_TOKEN)!=null && !intent.getStringExtra(AUTH_TOKEN).isEmpty()) {
+            setResult(RESULT_OK, intent);
+        } else {
+            setResult(RESULT_CANCELED);
+        }
+        finish();
+    }
+
+    /*@Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQ_SIGNUP && resultCode == RESULT_OK) {
+            finishLogin(data);
+        } else {
+            super.onActivityResult(requestCode, resultCode, data);
+        }
+    }*/
+
+    private void showErrorMessage(Intent intent) {
+        Toast.makeText(this, intent.getStringExtra(KEY_ERROR_MESSAGE), Toast.LENGTH_LONG).show();
     }
 }

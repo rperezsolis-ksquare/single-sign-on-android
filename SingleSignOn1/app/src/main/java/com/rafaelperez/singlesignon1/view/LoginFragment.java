@@ -2,19 +2,17 @@ package com.rafaelperez.singlesignon1.view;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
-import android.accounts.AccountManagerCallback;
-import android.accounts.AccountManagerFuture;
-import android.accounts.AuthenticatorException;
-import android.accounts.OperationCanceledException;
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
+import android.widget.ArrayAdapter;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -24,37 +22,56 @@ import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 
+import com.google.android.material.snackbar.Snackbar;
 import com.rafaelperez.singlesignon1.R;
-import com.rafaelperez.singlesignon1.authentication.AccountGeneral;
-import com.rafaelperez.singlesignon1.authentication.SsoAuthenticator;
 import com.rafaelperez.singlesignon1.databinding.FragmentLoginBinding;
+import com.rafaelperez.singlesignon1.network.AppAuthHelper;
+import com.rafaelperez.singlesignon1.utils.JWTUtils;
 import com.rafaelperez.singlesignon1.viewmodel.LoginViewModel;
 
-import java.io.IOException;
+import net.openid.appauth.AuthorizationException;
+import net.openid.appauth.AuthorizationResponse;
+import net.openid.appauth.AuthorizationService;
+import net.openid.appauth.TokenResponse;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 
 public class LoginFragment extends Fragment {
 
-    private static int CREDENTIALS_RESQUEST_CODE = 1;
-    private static int ACCOUNT_MANAGER_CALLBACK_REQUEST_CODE = 0;
+    private static final int AUTH_CODE_REQ = 10;
+    private static final String KEY_REFRESH_TOKEN = "refresh_token";
+
 
     private LoginViewModel viewModel;
     private FragmentLoginBinding binding;
+    private AppAuthHelper appAuthHelper;
     private AccountManager accountManager;
+    private final int[] selectedAccountIndex = {0};
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         binding = DataBindingUtil.inflate(inflater, R.layout.fragment_login, container, false);
+
+        /*try {
+            con = createPackageContext("com.sharedpref1", 0);//first app package name is "com.sharedpref1"
+            SharedPreferences pref = con.getSharedPreferences(
+                        "demopref", Context.MODE_PRIVATE);
+            String your_data = pref.getString("demostring", "No Value");
+        }
+    catch (NameNotFoundException e) {
+                Log.e("Not data shared", e.toString());
+         }*/
+
         viewModel = new ViewModelProvider(this).get(LoginViewModel.class);
-        accountManager = AccountManager.get(getContext());
         binding.setLoginViewModel(viewModel);
         viewModel.getSigningIn().observe(getViewLifecycleOwner(), new Observer<Boolean>() {
             @Override
             public void onChanged(Boolean signingIn) {
                 if (signingIn) {
                     getToken();
-                    //testOnChanged();
                 }
             }
         });
@@ -62,8 +79,7 @@ public class LoginFragment extends Fragment {
             @Override
             public void onChanged(Boolean accessDenied) {
                 if (accessDenied) {
-                    Intent intent = new Intent(getContext(), AuthenticatorActivity.class);
-                    startActivityForResult(intent, CREDENTIALS_RESQUEST_CODE);
+                    getToken();
                 }
             }
         });
@@ -71,95 +87,114 @@ public class LoginFragment extends Fragment {
         return binding.getRoot();
     }
 
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        appAuthHelper = new AppAuthHelper(getContext());
+        accountManager = AccountManager.get(getContext());
+        navigateToMainView();
+    }
+
     private void getToken() {
         Account[] accounts = accountManager.getAccountsByType(getString(R.string.account_type));
         if (accounts.length==0) {
-            //If there is no account, add a new one using user credentials
-            final Intent intent = new Intent(getContext(), AuthenticatorActivity.class);
-            intent.putExtra(AuthenticatorActivity.ARG_ACCOUNT_TYPE, AccountGeneral.ACCOUNT_TYPE);
-            intent.putExtra(AuthenticatorActivity.ARG_AUTH_TYPE, AccountGeneral.AUTHTOKEN_TYPE_FULL_ACCESS);
-            intent.putExtra(AuthenticatorActivity.ARG_IS_ADDING_NEW_ACCOUNT, true);
-            startActivityForResult(intent, CREDENTIALS_RESQUEST_CODE);
-        }
-        //todo: If there's more than one Account in the array, present a dialog asking the user to select one and use that one to get the token.
-        Bundle options = new Bundle();
-        //todo: Define the token type.
-        accountManager.getAuthToken(accounts[0],              // Account retrieved using getAccountsByType()
-                AccountGeneral.AUTHTOKEN_TYPE_FULL_ACCESS,    // Auth scope (token type)
-                options,                                      // Authenticator-specific options
-                getActivity(),                                // Your activity
-                new OnTokenAcquired(),                        // Callback called when a token is successfully acquired
-                new Handler(new Handler.Callback() { // Callback called if an error occurs
-                    @Override
-                    public boolean handleMessage(@NonNull Message message) {
-                        return false;
-                    }
-                })
-        );
-    }
-
-    private class OnTokenAcquired implements AccountManagerCallback<Bundle> {
-        @Override
-        public void run(AccountManagerFuture<Bundle> result) {
-            try {
-                Bundle bundle = result.getResult();
-                String token = bundle.getString(AccountManager.KEY_AUTHTOKEN);
-                Intent launch = (Intent) bundle.get(AccountManager.KEY_INTENT);
-                if (launch != null) {
-                    startActivityForResult(launch, ACCOUNT_MANAGER_CALLBACK_REQUEST_CODE);
-                    return;
-                }
-                viewModel.authenticate(token);
-            } catch (AuthenticatorException | IOException | OperationCanceledException e) {
-                e.printStackTrace();
-            }
+            final Intent authIntent = appAuthHelper.getAuthIntent();
+            startActivityForResult(authIntent, AUTH_CODE_REQ);
+        } else {
+            showMsg("There are accounts");
         }
     }
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        //super.onActivityResult(requestCode, resultCode, data);
-        if (resultCode==Activity.RESULT_OK) {
-            if (requestCode==CREDENTIALS_RESQUEST_CODE && data!=null) {
-                String token = data.getStringExtra("token");
-                viewModel.authenticate(token);
-            } else {
-                getToken();
-            }
+         if (resultCode==Activity.RESULT_OK) {
+             if (requestCode == AUTH_CODE_REQ) {
+                 AuthorizationResponse authResponse = AuthorizationResponse.fromIntent(data);
+                 AuthorizationException authException = AuthorizationException.fromIntent(data);
+                 if (authResponse != null) {
+                     appAuthHelper.getAuthService().performTokenRequest(
+                         authResponse.createTokenExchangeRequest(),
+                         appAuthHelper.getClientAuthentication(),
+                         new AuthorizationService.TokenResponseCallback() {
+                             @Override public void onTokenRequestCompleted(
+                                     TokenResponse resp, AuthorizationException ex) {
+                                 if (resp != null) {
+                                     String accessToken = resp.accessToken;
+                                     String refreshToken = resp.refreshToken;
+                                     String idToken = JWTUtils.decode(resp.idToken);
+                                     try {
+                                         JSONObject jsonObject = new JSONObject(idToken);
+                                         String username = jsonObject.getString("preferred_username");
+                                         addAccount(username, getString(R.string.account_type), accessToken, refreshToken);
+                                     } catch (JSONException e) {
+                                         e.printStackTrace();
+                                     }
+                                     navigateToMainView();
+                                 } else {
+                                     showMsg(ex.errorDescription);
+                                 }
+                             }
+                         });
+                 } else {
+                     showMsg(authException.errorDescription);
+                 }
+             }
+        } else {
+            showMsg(getString(R.string.login_error));
         }
     }
 
-
-    private void addNewAccount(String accountType, String authTokenType) {
-        final AccountManagerFuture<Bundle> future = accountManager.addAccount(accountType, authTokenType,
-                null, null, getActivity(), new AccountManagerCallback<Bundle>() {
-            @Override
-            public void run(AccountManagerFuture<Bundle> future) {
-                try {
-                    Bundle bnd = future.getResult();
-                    showMessage("Account was created");
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    showMessage(e.getMessage());
-                }
-            }
-        }, null);
+    private void addAccount(String username, String accountType, String accessToken, String refreshToken) {
+        Account account = new Account(username,accountType);
+        accountManager.addAccountExplicitly(account, "", null);
+        accountManager.setUserData(account, AccountManager.KEY_AUTHTOKEN, accessToken);
+        accountManager.setUserData(account, KEY_REFRESH_TOKEN, refreshToken);
     }
 
-    private void showMessage(final String msg) {
-        if (msg.isEmpty()) {
-            return;
+    private void showMsg(String msg) {
+        Snackbar.make(getView(), msg, Snackbar.LENGTH_SHORT).show();
+    }
+
+    private void storeToken(String token) {
+        SharedPreferences prefs = getActivity().getSharedPreferences("ssoToken",
+                Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putString("refreshToken", token);
+        editor.apply();
+    }
+
+    private void navigateToMainView() {
+        Account[] accounts = accountManager.getAccountsByType(getString(R.string.account_type));
+        if (accounts.length>1) {
+            selectAccount(accounts);
+        } else if (accounts.length==1) {
+            String accessToken = accountManager.getUserData(accounts[0], AccountManager.KEY_AUTHTOKEN);
+            Navigation.findNavController(binding.getRoot()).navigate(LoginFragmentDirections.actionLoginFragmentToLoggedFragment(accessToken));
         }
-
-        getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Toast.makeText(getContext(), msg, Toast.LENGTH_SHORT).show();
-            }
-        });
     }
 
-    private void testOnChanged() {
-        Navigation.findNavController(binding.getRoot()).navigate(LoginFragmentDirections.actionLoginFragmentToLoggedFragment());
+    private void selectAccount(Account[] accounts) {
+        final ArrayAdapter<String> arrayAdapter = new ArrayAdapter<>(getContext(), android.R.layout.select_dialog_singlechoice);
+        for (Account account : accounts) {
+            arrayAdapter.add(account.name);
+        }
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext()).setTitle("Select account");
+        builder.setAdapter(arrayAdapter, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                selectedAccountIndex[0] = which;
+                String accessToken = accountManager.getUserData(accounts[which], AccountManager.KEY_AUTHTOKEN);
+                Navigation.findNavController(binding.getRoot()).navigate(LoginFragmentDirections.actionLoginFragmentToLoggedFragment(accessToken));
+                dialog.dismiss();
+            }
+        })
+        .setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        })
+        .setIcon(android.R.drawable.sym_def_app_icon)
+        .show();
     }
 }

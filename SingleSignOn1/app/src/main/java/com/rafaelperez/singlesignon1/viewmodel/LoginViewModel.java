@@ -18,6 +18,10 @@ public class LoginViewModel extends ViewModel {
 
     public LoginViewModel() {
         super();
+        init();
+    }
+
+    public void init() {
         signingIn.setValue(false);
         accessDenied.setValue(false);
     }
@@ -27,10 +31,6 @@ public class LoginViewModel extends ViewModel {
     }
 
     public void authenticate(String token) {
-        //todo: try to autenticate with the service provider
-
-        //if token is invalid, ask the user for credentials
-        accessDenied.setValue(true);
 
     }
 }
