@@ -1,0 +1,28 @@
+<resources>
+    <string name="app_name">SSO Launcher</string>
+
+    <!-- Splash Screen -->
+    <string name="splash_screen_title">SSO Launcher</string>
+
+    <!-- Login -->
+    <string name="login_title">Single Sign On Launcher</string>
+    <string name="username_field">email</string>
+    <string name="password">password</string>
+    <string name="login_button">Sign in with SSO Account</string>
+    <string name="preference_file_key">com.rafaelperez.ssolauncher.shared_preference</string>
+    <string name="logged_status_key">logged</string>
+    <string name="login_error">An error occur. Please try again.</string>
+
+    <!-- Authenticator -->
+    <string name="sign_in">Sign in</string>
+    <string name="sign_up">Sign up</string>
+    <string name="label">sso account</string>
+    <string name="account_type">com.ksquare.sso</string>
+
+    <!-- Logged -->
+    <string name="greeting">You are logged in!</string>
+    <string name="access_token">Access token:</string>
+
+    <!-- Logout -->
+    <string name="logout_menu_option">Logout</string>
+</resources>
