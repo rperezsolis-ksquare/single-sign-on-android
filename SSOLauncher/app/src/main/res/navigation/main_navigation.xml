@@ -16,7 +16,7 @@
         android:name="com.rafaelperez.ssolauncher.view.LoggedFragment"
         android:label="LoggedFragment" >
         <argument
-            android:name="authToken"
+            android:name="accessToken"
             app:argType="string" />
     </fragment>
 </navigation>

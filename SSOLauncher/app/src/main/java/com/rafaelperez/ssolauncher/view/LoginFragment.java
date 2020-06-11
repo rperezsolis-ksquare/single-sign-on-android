@@ -40,35 +40,26 @@ import org.json.JSONObject;
 
 public class LoginFragment extends Fragment {
 
-    private static final int AUTH_CODE_REQ = 10;
-    private static final String KEY_REFRESH_TOKEN = "refresh_token";
-    private static final String KEY_ID_TOKEN_USERNAME = "preferred_username";
+    private static final int AUTH_CODE_REQ = 1010;
+    public static final String KEY_ACCESS_TOKEN = "accessToken";
+    public static final String KEY_REFRESH_TOKEN = "refresh_token";
+    public static final String KEY_ID_TOKEN_USERNAME = "preferred_username";
 
-    private LoginViewModel viewModel;
     private FragmentLoginBindingImpl binding;
     private AppAuthHelper appAuthHelper;
     private AccountManager accountManager;
     private int readAccountsPermission;
-    private final int[] selectedAccountIndex = {0};
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         binding = DataBindingUtil.inflate(inflater, R.layout.fragment_login, container, false);
-        viewModel = new ViewModelProvider(this).get(LoginViewModel.class);
+        LoginViewModel viewModel = new ViewModelProvider(this).get(LoginViewModel.class);
         binding.setLoginViewModel(viewModel);
         viewModel.getSigningIn().observe(getViewLifecycleOwner(), new Observer<Boolean>() {
             @Override
             public void onChanged(Boolean signingIn) {
                 if (signingIn) {
-                    getToken();
-                }
-            }
-        });
-        viewModel.getAccessDenied().observe(getViewLifecycleOwner(), new Observer<Boolean>() {
-            @Override
-            public void onChanged(Boolean accessDenied) {
-                if (accessDenied) {
                     getToken();
                 }
             }
@@ -149,7 +140,7 @@ public class LoginFragment extends Fragment {
     private void addAccount(String username, String accountType, String accessToken, String refreshToken) {
         Account account = new Account(username,accountType);
         accountManager.addAccountExplicitly(account, "", null);
-        accountManager.setUserData(account, AccountManager.KEY_AUTHTOKEN, accessToken);
+        accountManager.setUserData(account,KEY_ACCESS_TOKEN, accessToken);
         accountManager.setUserData(account, KEY_REFRESH_TOKEN, refreshToken);
     }
 
@@ -163,12 +154,12 @@ public class LoginFragment extends Fragment {
             if (accounts.length>1) {
                 selectAccount(accounts);
             } else if (accounts.length==1) {
-                String accessToken = accountManager.getUserData(accounts[0], AccountManager.KEY_AUTHTOKEN);
+                String accessToken = accountManager.getUserData(accounts[0], KEY_ACCESS_TOKEN);
                 Navigation.findNavController(binding.getRoot()).navigate(LoginFragmentDirections.actionLoginFragmentToLoggedFragment(accessToken));
             } else {
                 showMsg("No account available");
-                //todo: erase this, as is only for testing when the server is not available
-                Navigation.findNavController(binding.getRoot()).navigate(LoginFragmentDirections.actionLoginFragmentToLoggedFragment("accessToken"));
+                //todo: erase this in future, as is only for testing when the server is not available
+                //Navigation.findNavController(binding.getRoot()).navigate(LoginFragmentDirections.actionLoginFragmentToLoggedFragment("accessToken"));
             }
         } else {
             requestPermission();
@@ -184,7 +175,6 @@ public class LoginFragment extends Fragment {
         builder.setAdapter(arrayAdapter, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                selectedAccountIndex[0] = which;
                 String accessToken = accountManager.getUserData(accounts[which], AccountManager.KEY_AUTHTOKEN);
                 Navigation.findNavController(binding.getRoot()).navigate(LoginFragmentDirections.actionLoginFragmentToLoggedFragment(accessToken));
                 dialog.dismiss();

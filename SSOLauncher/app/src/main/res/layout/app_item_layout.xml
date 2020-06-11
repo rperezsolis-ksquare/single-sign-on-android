@@ -12,7 +12,8 @@
         android:id="@+id/appIcon"
         android:layout_width="100dp"
         android:layout_height="100dp"
-        android:paddingBottom="8dp"/>
+        android:paddingBottom="8dp"
+        android:paddingTop="20dp"/>
 
     <TextView
         android:id="@+id/appName"

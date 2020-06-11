@@ -6,6 +6,7 @@ import android.accounts.AccountAuthenticatorResponse;
 import android.accounts.NetworkErrorException;
 import android.content.Context;
 import android.os.Bundle;
+import android.widget.Toast;
 
 public class SsoAuthenticator extends AbstractAccountAuthenticator {
 

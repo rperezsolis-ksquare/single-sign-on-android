@@ -45,6 +45,9 @@
             <meta-data android:name="android.accounts.AccountAuthenticator"
                 android:resource="@xml/authenticator" />
         </service>
+        <service android:name=".service.RemoteService"
+            android:exported="true"
+            android:permission=""/>
     </application>
 
 </manifest>

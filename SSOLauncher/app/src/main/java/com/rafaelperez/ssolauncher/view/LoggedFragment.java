@@ -17,7 +17,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.snackbar.Snackbar;
 import com.rafaelperez.ssolauncher.R;
-import com.rafaelperez.ssolauncher.databinding.FragmentLoggedBinding;
+import com.rafaelperez.ssolauncher.databinding.FragmentLoggedBindingImpl;
 import com.rafaelperez.ssolauncher.domain.AppItem;
 import com.rafaelperez.ssolauncher.viewmodel.LoggedViewModel;
 import com.rafaelperez.ssolauncher.viewmodel.LoggedViewModelFactory;
@@ -25,26 +25,24 @@ import com.rafaelperez.ssolauncher.viewmodel.LoggedViewModelFactory;
 public class LoggedFragment extends Fragment {
     private RecyclerView recyclerView;
     private RecyclerView.Adapter adapter;
-    private RecyclerView.LayoutManager layoutManager;
-    private LoggedViewModel viewModel;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        FragmentLoggedBinding binding = DataBindingUtil.inflate(inflater, R.layout.fragment_logged, container, false);
+        FragmentLoggedBindingImpl binding = DataBindingUtil.inflate(inflater, R.layout.fragment_logged, container, false);
         LoggedFragmentArgs args = LoggedFragmentArgs.fromBundle(getArguments());
-        String authToken = args.getAuthToken();
-        LoggedViewModelFactory viewModelFactory = new LoggedViewModelFactory(authToken);
-        viewModel = new ViewModelProvider(getActivity(), viewModelFactory).get(LoggedViewModel.class);
+        String accessToken = args.getAccessToken();
+        LoggedViewModelFactory viewModelFactory = new LoggedViewModelFactory(accessToken);
+        LoggedViewModel viewModel = new ViewModelProvider(getActivity(), viewModelFactory).get(LoggedViewModel.class);
         recyclerView = binding.appsRecyclerView;
         recyclerView.setHasFixedSize(true);
-        layoutManager = new GridLayoutManager(getContext(), 2);
+        RecyclerView.LayoutManager layoutManager = new GridLayoutManager(getContext(), 2);
         recyclerView.setLayoutManager(layoutManager);
         viewModel.getAppItems().observe(getViewLifecycleOwner(), new Observer<AppItem[]>() {
             @Override
             public void onChanged(AppItem[] appItems) {
                 if (appItems.length>0) {
-                    adapter = new LoggedFragmentAdapter(appItems,getContext());
+                    adapter = new LoggedFragmentAdapter(appItems, getContext(), accessToken);
                     recyclerView.setAdapter(adapter);
                 } else {
                     Snackbar.make(getView(), "There are no apps available", Snackbar.LENGTH_LONG).show();
