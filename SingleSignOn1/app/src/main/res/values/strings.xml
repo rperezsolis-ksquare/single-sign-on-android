@@ -1,17 +1,18 @@
 <resources>
-    <string name="app_name">Single Sign On 1</string>
+    <string name="app_name">App 1</string>
 
     <!-- Splash Screen -->
-    <string name="splash_screen_title">Yellow\nPokédex</string>
+    <string name="splash_screen_title">Single Sign On 1</string>
 
     <!-- Login -->
-    <string name="login_title">Single Sign On 1</string>
+    <string name="login_title">Single Sign On Client 1</string>
     <string name="username_field">email</string>
     <string name="password">password</string>
-    <string name="login_button">Sign in with SSO Account</string>
+    <string name="login_button">Sign in with saved SSO Account</string>
     <string name="preference_file_key">com.rafaelperez.singlesignon1.shared_preference</string>
     <string name="logged_status_key">logged</string>
-    <string name="login_error">An error occur. Please try again.</string>
+    <string name="login_error">An error occur. Try again later.</string>
+    <string name="login_retry_please">The account was added successfully. Please try again.</string>
 
     <!-- Authenticator -->
     <string name="sign_in">Sign in</string>

@@ -29,9 +29,10 @@
 
         <Button
             android:id="@+id/btnSignIn"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/login_button"
+            android:textAllCaps="false"
             android:onClick="@{() -> loginViewModel.signIn()}"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="@+id/loginTitle"

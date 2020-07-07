@@ -11,7 +11,6 @@ import androidx.annotation.Nullable;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
 
-import com.google.android.material.snackbar.Snackbar;
 import com.rafaelperez.singlesignon1.R;
 import com.rafaelperez.singlesignon1.databinding.FragmentLoggedBinding;
 
