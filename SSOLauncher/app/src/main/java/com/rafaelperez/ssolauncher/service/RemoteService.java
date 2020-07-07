@@ -25,6 +25,8 @@ public class RemoteService extends Service {
     private static final String KEY_MSG = "msg";
     private static final String KEY_AUTHCODE = "authCode";
     private static final String KEY_ID = "id";
+    private static final int SUCCESS = 1;
+    private static final int FAIL = 2;
 
     private Messenger messenger; //receives remote invocations
     private AuthCodeRepository repository;
@@ -80,16 +82,25 @@ public class RemoteService extends Service {
                     public void onResponse(Call<AuthCodeResponse> call, Response<AuthCodeResponse> response) {
                         switch (response.code()) {
                             case 200:
-                                Bundle bundleToSend = new Bundle();
-                                bundleToSend.putString(LoginFragment.KEY_ACCESS_TOKEN, accessToken);
-                                bundleToSend.putString(LoginFragment.KEY_REFRESH_TOKEN, refreshToken);
-                                bundleToSend.putString(LoginFragment.KEY_ID_TOKEN_USERNAME, userName);
-                                Message message = Message.obtain(null, 1);
-                                message.obj = bundleToSend;
-                                try {
-                                    replyTo.send(message);
-                                } catch (RemoteException rme) {
-                                    Toast.makeText(RemoteService.this, "Invocation Failed!!", Toast.LENGTH_LONG).show();
+                                if(response.body().getResponse().equals("Valid code")) {
+                                    Bundle bundleToSend = new Bundle();
+                                    bundleToSend.putString(LoginFragment.KEY_ACCESS_TOKEN, accessToken);
+                                    bundleToSend.putString(LoginFragment.KEY_REFRESH_TOKEN, refreshToken);
+                                    bundleToSend.putString(LoginFragment.KEY_ID_TOKEN_USERNAME, userName);
+                                    Message message = Message.obtain(null, SUCCESS);
+                                    message.obj = bundleToSend;
+                                    try {
+                                        replyTo.send(message);
+                                    } catch (RemoteException rme) {
+                                        Toast.makeText(RemoteService.this, "Invocation Failed!!", Toast.LENGTH_LONG).show();
+                                    }
+                                } else {
+                                    Message message = Message.obtain(null, FAIL);
+                                    try {
+                                        replyTo.send(message);
+                                    } catch (RemoteException rme) {
+                                        Toast.makeText(RemoteService.this, "Invocation Failed!!", Toast.LENGTH_LONG).show();
+                                    }
                                 }
                                 break;
                             case 401:
