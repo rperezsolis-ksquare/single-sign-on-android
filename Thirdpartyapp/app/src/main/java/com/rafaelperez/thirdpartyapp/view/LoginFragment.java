@@ -35,6 +35,8 @@ public class LoginFragment extends Fragment {
     private static final String KEY_ACCESS_TOKEN = "accessToken";
     private static final String KEY_REFRESH_TOKEN = "refresh_token";
     private static final String KEY_USERNAME = "preferred_username";
+    private static final int SUCCESS = 1;
+    private static final int FAIL = 2;
 
     private FragmentLoginBindingImpl binding;
     private LoginViewModel viewModel;
@@ -178,7 +180,7 @@ public class LoginFragment extends Fragment {
             System.out.println("Return successfully received!!!!!!");
             System.out.println("*****************************************");
             int what = message.what;
-            if (what == 1) {
+            if (what == SUCCESS) {
                 Bundle bundle1 = (Bundle) message.obj;
                 String accessToken = (String) bundle1.getString(KEY_ACCESS_TOKEN);
                 String refreshToken = (String) bundle1.getString(KEY_REFRESH_TOKEN);
@@ -191,6 +193,8 @@ public class LoginFragment extends Fragment {
                 } else {
                     showMessage("Failed request");
                 }
+            } else if(what == FAIL) {
+                showMessage("Invalid code");
             }
         }
     }
